@@ -44,7 +44,7 @@ public class sessionServlet extends HttpServlet {
         }
 
         //End Session logic
-        if(req.getParameter("name").equals("logout")){
+        if((req.getParameter("name") != null) && (req.getParameter("name").equals("logout"))){
             String url = new String(""); //create an empty string for the URL forwarding
             HttpSession session = req.getSession(); //get the session
             Cookie[] cookies = req.getCookies(); //get all the cookies
