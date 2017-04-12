@@ -19,6 +19,7 @@ public class sessionServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse res)
     throws ServletException, IOException
     {
+        String sessionManagementString = getRandomString(); //create the session management string
 
 
         if ((!(req.getParameter("task")==null))&&(req.getParameter("task").trim().equals("deploy"))) {
@@ -31,17 +32,28 @@ public class sessionServlet extends HttpServlet {
             return;
         }
 
-        Consumer <String> forwardTo =(s) ->ForwardTo(s,req,res);
+        Consumer <String> forwardTo =(s) -> ForwardTo(s,req,res); //Create a lambda handler
         boolean is_first_visit=true;
-        String[] this_session=new String[3];
-        String ip = req.getRemoteAddr();
-        for (String [] a_session :the_sessions) {
-            if (a_session[0].equals(ip)) {  //Found an active session
-                is_first_visit=false;
-                this_session=a_session;
+        String[] this_session=new String[3]; //create a new string of elements for the session
+
+        for(String[] a_session : the_sessions){
+
+            if(a_session[0] != null){ //if the sessionManagementString is not null
+                is_first_visit = false; //this is a pre-existing session
+                this_session = a_session; //assign a_session to this_session
                 break;
             }
         }
+
+        //check the IP
+        /*String ip = req.getRemoteAddr(); //get the IP address
+        for (String [] a_session : the_sessions) { //for each session in the_sessions
+            if (a_session[0].equals(ip)) {  //Found an active session
+                is_first_visit=false; //set the flag to false to
+                this_session=a_session; //assign a_session to this_session
+                break;
+            }
+        }*/
 
         //End Session logic
         if((req.getParameter("name") != null) && (req.getParameter("name").equals("logout"))){
@@ -49,70 +61,95 @@ public class sessionServlet extends HttpServlet {
             HttpSession session = req.getSession(); //get the session
             Cookie[] cookies = req.getCookies(); //get all the cookies
 
-            for(Cookie cookie : cookies){
-                cookie.setMaxAge(0); //actually delete the cookies
-                cookie.setPath("/"); //allow the entire application to access it
-                res.addCookie(cookie); //add the deleted cookie back to the browser
+            if(cookies != null) { //if the cookies isn't null
+                for (Cookie cookie : cookies) {
+                    cookie.setMaxAge(0); //actually delete the cookies
+                    cookie.setPath("/"); //allow the entire application to access it
+                    res.addCookie(cookie); //add the deleted cookie back to the browser
+                }
             }
 
+            the_sessions.remove(this_session); //remove this session
+            req.setAttribute("thesessioncount", the_sessions.size()); //reset the size attribute
             session.invalidate(); //invalidate the session and unbind any object within the session
-
-            url = "http://hoare.cs.umsl.edu/servlet/j-thompson/startSession.jsp";
             forwardTo.accept("startSession.jsp"); //set the url back to the login page
-            //getServletContext().getRequestDispatcher(url).forward(req, res); //forward the page to the login page
             return;
         }
 
-        if ((req.getParameter("task")==null)&&(!is_first_visit)) {
-            the_sessions.remove(this_session);
+        if ((req.getParameter("task")==null)&&(!is_first_visit)) { //if this isn't the first visit
+            the_sessions.remove(this_session); //remove the session from the list
             is_first_visit=true; // just used http://hoare.cs.umsl.edu/servlet/js_test/sessionServlet
         }
-        req.setAttribute("thesessioncount",the_sessions.size());
-        if (is_first_visit) {
-            if (the_sessions.size()==10) {
-                forwardTo.accept("noSessions.jsp");  //No Available Sessions
+
+        //if this is
+        req.setAttribute("thesessioncount",the_sessions.size()); //set the size of the session
+        if (is_first_visit) { //if this is the first visit
+
+            if (the_sessions.size()==10) { //if the_sessions size is equal to 30 **** change back to 10
+                forwardTo.accept("noSessions.jsp");  //forward the page to the noSessions.jsp
                 return;
             }
-            String[] new_session = {ip,df.format(new Date()),"need a name"};
-            the_sessions.add(new_session);
-            this_session=new_session;
-            forwardTo.accept("startSession.jsp");
+
+            //***replaced ip with sessionManagementString
+            String[] new_session = {sessionManagementString, df.format(new Date()), "need a name"}; //****create a new session
+            the_sessions.add(new_session); //add the new_session to the_sessions array list
+            this_session=new_session; //assign new_session to this session
+
+            //****set the attribute of the session management string
+            req.setAttribute("sessionManagementString", this_session[0]);
+
+            forwardTo.accept("startSession.jsp"); //forward the page to the startSession.jsp
             return;
         }
+
         String the_name="";
         String the_pw="";
         if (this_session[2].equals("need a name")) { //No name given yet
-            the_name=req.getParameter("whoisit");
-            the_pw=req.getParameter("passwd");
+
+            the_name=req.getParameter("whoisit"); //get the "whoisit" parameter from the request
+            the_pw=req.getParameter("passwd"); //get the "passwd" parameter from the request
+
+            //if the name is null OR the length is 0 OR the checkPW comes back false
             if ((the_name==null)||(the_name.trim().length()==0)||checkPW(the_name,the_pw)) {
-                the_sessions.remove(this_session);
-                req.setAttribute("thesessioncount",the_sessions.size());
-                forwardTo.accept("startSession.jsp");
+
+                the_sessions.remove(this_session); //remove the session from the the_sessions array list
+                req.setAttribute("thesessioncount",the_sessions.size()); //set the size of the session
+                forwardTo.accept("startSession.jsp"); //forward to the startSession.jsp
                 return;  // didn't enter a name in startSession
             }
         }
-        this_session[2]=the_name.trim();
-        req.setAttribute("thename", this_session[2]);
+
+        this_session[2]=the_name.trim(); //assign the name to this session
+        req.setAttribute("thename", this_session[2]); //set the attribute in the session
+
         if (tooLong(this_session[1],df.format(new Date()))) {  //Has the session timed out?
-            the_sessions.remove(this_session);
-            forwardTo.accept("Expired.jsp");
+            the_sessions.remove(this_session); //if so, remove the session
+            forwardTo.accept("Expired.jsp"); //forward the page to Expired.jsp
             return;
         }
-        else {
+        else { //***Session has not timed out.
             this_session[1]=df.format(new Date()); //reset the last session activity time
-            NotesBean thesenotes=new NotesBean();
-            if (!req.getParameter("task").trim().equals("0")) {
-                thesenotes.setAll(req.getParameter("java_source"),Integer.parseInt(req.getParameter("version")));
-                if (req.getParameter("task").trim().equals("2")) {
-                    thesenotes.setNotes(req.getParameter("notes"),req.getParameter("java_source"),Integer.parseInt(req.getParameter("version")));
+            NotesBean thesenotes=new NotesBean(); //**** lock this
+
+            final Object lock = req.getSession().getId().intern(); //create a lock for the object
+
+            synchronized(lock) { //lock the object
+
+                if (!req.getParameter("task").trim().equals("0")) {
+                    thesenotes.setAll(req.getParameter("java_source"), Integer.parseInt(req.getParameter("version")));
+
+                    if (req.getParameter("task").trim().equals("2")) {
+                        thesenotes.setNotes(req.getParameter("notes"), req.getParameter("java_source"), Integer.parseInt(req.getParameter("version")));
+                    }
                 }
+                req.setAttribute("thesessioncount", the_sessions.size()); //set the size of the session
+                req.setAttribute("theBean", thesenotes); //set the bean **** must be synchronized
             }
-            req.setAttribute("thesessioncount",the_sessions.size());
-            req.setAttribute("theBean",thesenotes);
-            //req.setAttribute("theURL", "http://www.umsl.edu/~siegelj/turing.jpg");
+
             forwardTo.accept("getNotes.jsp");
             return;
         }
+
 
     }//end doGet
 
@@ -129,7 +166,7 @@ public class sessionServlet extends HttpServlet {
         FileWriter fileWriter = null;
         try {
             String content =s+" at :"+new Date(System.currentTimeMillis()).toString()+"\n";
-            File theLogFile = new File("C:/Tomcat/webapps/js_test/session.log");
+            File theLogFile = new File("/var/lib/tomcat/webapps/j-thompson/WEB-INF/classes/session.log");
             fileWriter = new FileWriter(theLogFile,true);
             fileWriter.write(content);
         } catch (IOException ex) {
@@ -143,8 +180,7 @@ public class sessionServlet extends HttpServlet {
 
     }
 
-    void ForwardTo(String s,HttpServletRequest req, HttpServletResponse res)
-    {
+    void ForwardTo(String s,HttpServletRequest req, HttpServletResponse res){
         RequestDispatcher rd= req.getRequestDispatcher(s);
         try {
             rd.forward(req, res);
@@ -161,6 +197,7 @@ public class sessionServlet extends HttpServlet {
     {
         log("The instance was destroyed");
     }
+
     public String getRandomString(){
         byte[] randbyte=new byte[10];
         Random rand  = new Random(System.currentTimeMillis());
@@ -178,7 +215,6 @@ public class sessionServlet extends HttpServlet {
             return "bad";
         }
     }
-
 }
 
 

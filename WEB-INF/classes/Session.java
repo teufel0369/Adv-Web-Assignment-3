@@ -16,5 +16,6 @@ public class Session {
         password=the_pw;       
         securityString=the_ss;
         task=the_task;
+
     }
 }
