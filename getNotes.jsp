@@ -16,8 +16,8 @@ div.scrolling {
 
 <body>
 <center> <h1> Select a Version</h1></center> 
-    
-    <a href="http://hoare.cs.umsl.edu/servlet/j-thompson/sessionServlet?name=logout" style="float:right">EndSession</a>
+
+<a href="http://hoare.cs.umsl.edu/servlet/j-thompson/sessionServlet?name=logout" style="float:right">End Session</a>
    
     <hr />
    <font size="+1">
@@ -29,6 +29,7 @@ div.scrolling {
 
       Java Source: <input type="text" name="java_source" value="${theBean.file_name}">&nbsp;&nbsp;&nbsp;Version: <input type="text" name="version" value="${this_version}">
       <br>
+       <input type="hidden" name="sessionString" value="${requestScope.sessionManagementString}">
       <input type="hidden" name="task" value="1">
       <input type="submit" value="Submit">
    </form>
@@ -40,11 +41,11 @@ div.scrolling {
       <textarea rows="5" cols="100"  name="notes">
       ${theBean.notes}
       </textarea> <br>
-<input type="hidden" name="java_source" value="${theBean.file_name}">
-
+       <input type="hidden" name="sessionString" value="${requestScope.sessionManagementString}">
+       <input type="hidden" name="java_source" value="${theBean.file_name}">
        <input type="hidden" name="version" value="${theBean.version_id}">
-      <input type="hidden" name="task" value="2">
-      <input type="submit" value="Submit">
+       <input type="hidden" name="task" value="2">
+       <input type="submit" value="Submit">
    </form>
    <hr />
    <center> <h2>The file:</h2> </center>

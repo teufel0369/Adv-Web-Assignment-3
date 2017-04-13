@@ -2,7 +2,7 @@ import BH.*;
 import java.io.IOException;
 import javax.servlet.*;
 import javax.servlet.http.*;
-import java.io.*; 
+import java.io.*;
 import java.util.*;
 import java.util.function.*;
 import static java.util.Arrays.asList;
@@ -17,7 +17,7 @@ public class sessionServlet extends HttpServlet {
         df=DateFormat.getDateTimeInstance(DateFormat.LONG,DateFormat.LONG);
     }
     protected void doGet(HttpServletRequest req, HttpServletResponse res)
-    throws ServletException, IOException
+            throws ServletException, IOException
     {
         String sessionManagementString = getRandomString(); //create the session management string
 
@@ -28,7 +28,7 @@ public class sessionServlet extends HttpServlet {
             out.println("<body>");
             out.println("<hr /><center><h1>sessionServlet Deployed</h1></center><hr />");
             out.println("</body>");
-            out.println("</html>"); 
+            out.println("</html>");
             return;
         }
 
@@ -36,14 +36,24 @@ public class sessionServlet extends HttpServlet {
         boolean is_first_visit=true;
         String[] this_session=new String[3]; //create a new string of elements for the session
 
+        String userSessionString = req.getParameter("sessionManagementString");
+
         for(String[] a_session : the_sessions){
+            if(a_session[0] != null){
+                is_first_visit = false;
+                this_session = a_session;
+                break;
+            }
+        }
+
+        /*for(String[] a_session : the_sessions){
 
             if(a_session[0] != null){ //if the sessionManagementString is not null
                 is_first_visit = false; //this is a pre-existing session
                 this_session = a_session; //assign a_session to this_session
                 break;
             }
-        }
+        }*/
 
         //check the IP
         /*String ip = req.getRemoteAddr(); //get the IP address
@@ -71,6 +81,7 @@ public class sessionServlet extends HttpServlet {
 
             the_sessions.remove(this_session); //remove this session
             req.setAttribute("thesessioncount", the_sessions.size()); //reset the size attribute
+            req.setAttribute("sessionManagementString", this_session[0]);
             session.invalidate(); //invalidate the session and unbind any object within the session
             forwardTo.accept("startSession.jsp"); //set the url back to the login page
             return;
@@ -114,6 +125,7 @@ public class sessionServlet extends HttpServlet {
 
                 the_sessions.remove(this_session); //remove the session from the the_sessions array list
                 req.setAttribute("thesessioncount",the_sessions.size()); //set the size of the session
+                req.setAttribute("sessionManagementString", this_session[0]);
                 forwardTo.accept("startSession.jsp"); //forward to the startSession.jsp
                 return;  // didn't enter a name in startSession
             }
@@ -140,17 +152,17 @@ public class sessionServlet extends HttpServlet {
 
                     if (req.getParameter("task").trim().equals("2")) {
                         thesenotes.setNotes(req.getParameter("notes"), req.getParameter("java_source"), Integer.parseInt(req.getParameter("version")));
+                        req.setAttribute("sessionManagementString", this_session[0]);
                     }
                 }
                 req.setAttribute("thesessioncount", the_sessions.size()); //set the size of the session
+                req.setAttribute("sessionManagementString", this_session[0]);
                 req.setAttribute("theBean", thesenotes); //set the bean **** must be synchronized
             }
 
             forwardTo.accept("getNotes.jsp");
             return;
         }
-
-
     }//end doGet
 
     boolean tooLong(String now,String then){
@@ -204,7 +216,7 @@ public class sessionServlet extends HttpServlet {
         for (int idx = 0; idx <10; ++idx) {
             int randomInt = rand.nextInt(26); //0<=randomInt<26
             //System.out.println(randomInt);
-            randbyte[idx]=(byte)(randomInt+65);  
+            randbyte[idx]=(byte)(randomInt+65);
         }
         try {
             String rs=new String(randbyte, "UTF-8");
@@ -216,5 +228,4 @@ public class sessionServlet extends HttpServlet {
         }
     }
 }
-
 
